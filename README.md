@@ -217,7 +217,7 @@ Defined in `Jenkinsfile`. Stages run in order; a failure stops all later stages.
 1. Install JDK 17 or 21. Download `jenkins.war` from https://get.jenkins.io/war-stable/latest/jenkins.war
 2. Run `java -jar jenkins.war --httpPort=8081`, open http://localhost:8081, enter the initial admin password and install the suggested plugins.
 3. Add credentials: **Manage Jenkins → Credentials → Global → Add** — kind *Username with password*, ID `ghcr-creds`, username = GitHub user, password = a GitHub personal access token with `write:packages`.
-4. Create a job: **New Item → Pipeline** (`FA2-Pipeline`). Definition *Pipeline script from SCM*, SCM *Git*, repository `https://github.com/VBBBBBB/Devops-FA2.git`, branch `*/main`, script path `Jenkinsfile`.
+4. Create a job: **New Item → Pipeline** (`FA2-Pipeline`). Definition *Pipeline script from SCM*, SCM *Git*, repository `https://github.com/VBBBBBB/DEVOPSFA2.git`, branch `*/main`, script path `Jenkinsfile`.
 5. Click **Build Now**. Later runs start automatically after a push.
 
 Jenkins runs on the same machine as Docker Desktop and the local Kubernetes cluster, so the pipeline deploys directly to that cluster.
@@ -527,3 +527,4 @@ This project demonstrates an integrated DevOps workflow covering source control,
 
 The project covers source control, a Jenkins Pipeline-as-Code workflow (build, test, security scan, Docker image build, deploy), container publishing, Kubernetes deployment with scaling and rollback, and Prometheus/Grafana monitoring.
 >>>>>>> 141e49d (Migrate CI/CD from GitHub Actions to Jenkins)
+

@@ -23,7 +23,7 @@ pipeline {
     parameters {
         booleanParam(name: 'PUSH_TO_GHCR', defaultValue: true,
                      description: 'Push images to GitHub Container Registry (needs credentials with ID ghcr-creds)')
-        string(name: 'KIND_CLUSTER', defaultValue: '',
+        string(name: 'KIND_CLUSTER', defaultValue: 'fa2',
                description: 'Only if your cluster is a kind cluster: its name, so images are loaded into it. Leave empty otherwise.')
         string(name: 'BACKEND_REPLICAS', defaultValue: '3',
                description: 'Backend replicas to scale to at the end of the pipeline')
@@ -150,3 +150,4 @@ pipeline {
         }
     }
 }
+
