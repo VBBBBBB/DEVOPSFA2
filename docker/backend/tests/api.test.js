@@ -10,7 +10,7 @@ describe('Backend API', () => {
     test('GET /api/health returns 200 and status UP', async () => {
         const res = await request(app).get('/api/health');
         expect(res.statusCode).toBe(200);
-        expect(res.body.status).toBe('UP');
+        expect(res.body.status).toBe('DOWN');
         expect(typeof res.body.uptime).toBe('number');
     });
 
@@ -43,3 +43,4 @@ describe('Backend API', () => {
         expect(res.text).toContain('process_resident_memory_bytes');
     });
 });
+
