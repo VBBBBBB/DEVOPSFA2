@@ -1,5 +1,6 @@
-# FA2 — CI/CD, Container Orchestration and Observability
+# FA2 — CI/CD with Jenkins, Container Orchestration and Observability
 
+<<<<<<< HEAD
 An end-to-end DevOps project extending the FA1 application with automated testing, Docker image publishing, Kubernetes deployment, and application monitoring using Prometheus and Grafana.
 
 ## Overview
@@ -114,15 +115,115 @@ The CI/CD workflow deploys to an ephemeral Kubernetes cluster created on the Git
 │   └── grafana.yaml
 ├── docs/
 │   └── README-FA1.md
+=======
+An end-to-end DevOps project extending the FA1 application (Nginx frontend + Node.js/Express backend) with a **Jenkins** CI/CD pipeline, Docker image publishing, **Kubernetes** deployment, and monitoring with **Prometheus** and **Grafana**.
+
+## Overview
+
+A `git push` to `main` is detected by Jenkins, which runs a pipeline defined as code in the `Jenkinsfile`: it checks out the repository, builds and unit-tests the backend, scans dependencies, builds Docker images, pushes them to GitHub Container Registry (GHCR), deploys them to the local Kubernetes cluster with a rolling update, runs smoke tests and scales the backend.
+
+Prometheus scrapes metrics from the backend pods and Grafana visualises availability, request count, request rate, CPU, memory and p95 latency.
+
+### Key features
+
+- Jenkins declarative pipeline (Pipeline as Code, `Jenkinsfile`)
+- Automatic trigger on new Git commits (SCM polling)
+- Backend unit/API tests with Jest and Supertest; pipeline fails if a test fails
+- Dependency security scan (`npm audit`) as a DevSecOps stage
+- Docker images tagged `<build-number>-<git-sha>` and `latest`
+- Kubernetes Deployments, Services, probes, resource limits, rolling updates, rollback
+- Prometheus metrics collection and a provisioned Grafana dashboard
+
+## Architecture
+
+```
+Developer --git push--> GitHub (main)
+                           |
+                 Jenkins (polls SCM every ~2 min)
+                           |
+   Checkout -> Build -> Unit Test -> Security Scan -> Docker Build
+        -> Push to GHCR -> Deploy to Kubernetes -> Smoke Test -> Scale
+                           |
+Kubernetes namespace: fa2
+   Frontend (Nginx, 2 replicas) - NodePort 30080
+        | /api requests
+        v
+   Backend (Node.js/Express) - ClusterIP service backend-api:5000
+        /api/health   /api/status   /metrics
+
+Kubernetes namespace: monitoring
+   Prometheus --> scrapes backend pods (pod service discovery)
+   Grafana    --> dashboard "FA2 Backend Overview"
+```
+
+## Technology stack
+
+| Component | Technology | Purpose |
+|---|---|---|
+| Version control | Git, GitHub | Source code and change tracking |
+| CI/CD | Jenkins (Pipeline as Code) | Build, test, scan, image build, deploy |
+| Backend | Node.js, Express | REST API and metrics |
+| Frontend | HTML, Nginx | Web page and API reverse proxy |
+| Testing | Jest, Supertest | Automated API tests |
+| Containers | Docker | Reproducible images |
+| Registry | GitHub Container Registry | Image storage |
+| Orchestration | Kubernetes | Deployment, service discovery, scaling |
+| Metrics / dashboards | Prometheus, Grafana | Monitoring |
+
+## Repository structure
+
+```
+.
+├── Jenkinsfile                  # CI/CD pipeline
+├── docker/
+│   ├── backend/  (app.js, server.js, tests/api.test.js, Dockerfile, package*.json)
+│   └── frontend/ (index.html, nginx.conf, Dockerfile)
+├── k8s/         (namespace.yaml, backend.yaml, frontend.yaml)
+├── monitoring/  (prometheus.yaml, grafana.yaml)
+├── docs/README-FA1.md
+>>>>>>> 141e49d (Migrate CI/CD from GitHub Actions to Jenkins)
 ├── .gitignore
 └── README.md
 ```
 
+<<<<<<< HEAD
 ## CI/CD Pipeline
 
 The pipeline is defined in `.github/workflows/ci-cd.yml`. It runs automatically for pushes and pull requests targeting `main`.
 
 ### 1. Build and Test
+=======
+## CI/CD pipeline (Jenkins)
+
+Defined in `Jenkinsfile`. Stages run in order; a failure stops all later stages.
+
+| # | Stage | What it does |
+|---|---|---|
+| 1 | Checkout | Pulls the repository and computes the image tag `<build>-<short-sha>` |
+| 2 | Build | `npm ci` installs the exact locked dependencies |
+| 3 | Unit Test | `npm test` (Jest). Pipeline fails here if any test fails |
+| 4 | Security Scan (DevSecOps) | `npm audit`; marks the stage unstable instead of failing |
+| 5 | Docker Build | Builds backend and frontend images with two tags each |
+| 6 | Push Images to GHCR | Optional (`PUSH_TO_GHCR` parameter), uses Jenkins credentials `ghcr-creds` |
+| 7 | Load Images into kind | Only if the `KIND_CLUSTER` parameter is set |
+| 8 | Deploy to Kubernetes | Applies manifests with this build's image tag, waits for rollout (rolling update) |
+| 9 | Smoke Test | In-cluster requests: `/api/health`, `/api/status`, `/metrics` |
+| 10 | Scale | Scales the backend to `BACKEND_REPLICAS`, prints rollout history |
+
+**Trigger:** `pollSCM('H/2 * * * *')`. Jenkins checks GitHub every ~2 minutes and starts a build when it finds a new commit.
+
+### Jenkins setup (Windows)
+
+1. Install JDK 17 or 21. Download `jenkins.war` from https://get.jenkins.io/war-stable/latest/jenkins.war
+2. Run `java -jar jenkins.war --httpPort=8081`, open http://localhost:8081, enter the initial admin password and install the suggested plugins.
+3. Add credentials: **Manage Jenkins → Credentials → Global → Add** — kind *Username with password*, ID `ghcr-creds`, username = GitHub user, password = a GitHub personal access token with `write:packages`.
+4. Create a job: **New Item → Pipeline** (`FA2-Pipeline`). Definition *Pipeline script from SCM*, SCM *Git*, repository `https://github.com/VBBBBBB/Devops-FA2.git`, branch `*/main`, script path `Jenkinsfile`.
+5. Click **Build Now**. Later runs start automatically after a push.
+
+Jenkins runs on the same machine as Docker Desktop and the local Kubernetes cluster, so the pipeline deploys directly to that cluster.
+
+## Local development and testing
+>>>>>>> 141e49d (Migrate CI/CD from GitHub Actions to Jenkins)
 
 The workflow checks out the repository, configures Node.js, installs dependencies using `npm ci`, and executes the backend test suite using `npm test`.
 
@@ -180,16 +281,26 @@ npm ci
 npm test
 ```
 
+<<<<<<< HEAD
 ### Build Container Images
 
 Return to the repository root before running these commands:
 
 ```powershell
+=======
+Build images manually:
+
+```
+>>>>>>> 141e49d (Migrate CI/CD from GitHub Actions to Jenkins)
 docker build -t ghcr.io/vbbbbbb/fa2-backend:latest docker/backend
 docker build -t ghcr.io/vbbbbbb/fa2-frontend:latest docker/frontend
 ```
 
+<<<<<<< HEAD
 If using kind, load the locally built images into the cluster:
+=======
+## Kubernetes deployment
+>>>>>>> 141e49d (Migrate CI/CD from GitHub Actions to Jenkins)
 
 ```powershell
 kind load docker-image ghcr.io/vbbbbbb/fa2-backend:latest
@@ -206,6 +317,7 @@ Apply the manifests from the repository root:
 kubectl apply -f k8s/namespace.yaml
 kubectl apply -f k8s/backend.yaml
 kubectl apply -f k8s/frontend.yaml
+<<<<<<< HEAD
 ```
 
 Verify deployments, pods and services:
@@ -219,6 +331,23 @@ kubectl -n fa2 rollout status deployment/frontend
 ### Access the Application
 
 Forward the frontend Service to the local machine:
+=======
+
+kubectl -n fa2 get deployments,pods,services
+kubectl -n fa2 rollout status deployment/backend
+kubectl -n fa2 rollout status deployment/frontend
+kubectl -n fa2 port-forward svc/frontend 8080:80     # open http://localhost:8080
+```
+
+| Resource | Details |
+|---|---|
+| Deployment `backend` | 2 replicas, RollingUpdate (maxUnavailable 0, maxSurge 1), readiness/liveness probes on `/api/health`, CPU/memory requests and limits |
+| Service `backend-api` | ClusterIP, port 5000 |
+| Deployment `frontend` | 2 replicas, probes on `/` |
+| Service `frontend` | NodePort 30080 |
+
+### Scaling, rollout and rollback
+>>>>>>> 141e49d (Migrate CI/CD from GitHub Actions to Jenkins)
 
 ```powershell
 kubectl -n fa2 port-forward svc/frontend 8080:80
@@ -233,11 +362,21 @@ Scale the backend deployment to four replicas:
 ```powershell
 kubectl -n fa2 scale deployment/backend --replicas=4
 kubectl -n fa2 rollout status deployment/backend
+<<<<<<< HEAD
 kubectl -n fa2 get deployment backend
 kubectl -n fa2 get pods
 ```
 
 Inspect rollout history:
+=======
+kubectl -n fa2 rollout history deployment/backend
+kubectl -n fa2 rollout undo deployment/backend
+```
+
+## Monitoring and observability
+
+The backend exposes `/metrics` via `prom-client`: default process metrics (CPU, memory, event loop), `http_requests_total` and `http_request_duration_seconds`. Prometheus finds backend pods through Kubernetes pod discovery using the `prometheus.io/scrape` annotations.
+>>>>>>> 141e49d (Migrate CI/CD from GitHub Actions to Jenkins)
 
 ```powershell
 kubectl -n fa2 rollout history deployment/backend
@@ -264,11 +403,37 @@ From the repository root:
 kubectl apply -f monitoring/prometheus.yaml
 kubectl apply -f monitoring/grafana.yaml
 kubectl -n monitoring get pods,services
+<<<<<<< HEAD
 ```
 
 Verify that the monitoring pods are running before opening the interfaces.
 
 ### Access Prometheus
+=======
+kubectl -n monitoring port-forward svc/prometheus 9090:9090   # http://localhost:9090/targets
+kubectl -n monitoring port-forward svc/grafana 3000:3000      # http://localhost:3000  (admin / admin)
+```
+
+The Grafana dashboard **FA2 Backend Overview** shows:
+
+| Panel | Query |
+|---|---|
+| Application availability | `sum(up{job="fa2-backend"})` |
+| Total requests served | `sum(http_requests_total)` |
+| Request rate by route | `sum by (route) (rate(http_requests_total[1m]))` |
+| CPU usage per pod | `rate(process_cpu_seconds_total{job="fa2-backend"}[1m])` |
+| Memory usage per pod | `process_resident_memory_bytes{job="fa2-backend"}` |
+| p95 request latency | `histogram_quantile(0.95, sum by (le) (rate(http_request_duration_seconds_bucket[1m])))` |
+
+### Logs and SRE indicators
+
+- **Logs:** the backend writes one line per request; view them with `kubectl -n fa2 logs -l app=backend --tail=50`.
+- **SLI (availability):** `sum(rate(http_requests_total{status_code!~"5.."}[5m])) / sum(rate(http_requests_total[5m]))`
+- **SLO examples:** 99% of requests succeed; p95 latency stays below 250 ms.
+- Distributed tracing and a centralized ELK stack are not implemented in this project.
+
+### Generate test traffic
+>>>>>>> 141e49d (Migrate CI/CD from GitHub Actions to Jenkins)
 
 ```powershell
 kubectl -n monitoring port-forward svc/prometheus 9090:9090
@@ -309,6 +474,7 @@ To generate requests against the application and observe changes in the dashboar
 kubectl -n fa2 run load --rm -i --restart=Never --image=busybox -- sh -c "while true; do wget -q -O- http://frontend/api/status >/dev/null; done"
 ```
 
+<<<<<<< HEAD
 Stop the command with `Ctrl+C` when sufficient traffic has been generated. The temporary load pod is configured for removal when the command exits normally.
 
 ## Testing and Failure Handling
@@ -323,11 +489,19 @@ To verify this behavior safely:
 4. Revert the test-only change and close the demonstration pull request.
 
 Do not merge deliberately failing test changes into `main`.
+=======
+Stop with `Ctrl+C`.
+
+## Testing and failure handling
+
+A failing test stops the Jenkins pipeline at the **Unit Test** stage, so no image is built, pushed or deployed. To demonstrate: change an expected value in `docker/backend/tests/api.test.js`, push, observe the red stage and skipped later stages in Jenkins, then revert the change and push again.
+>>>>>>> 141e49d (Migrate CI/CD from GitHub Actions to Jenkins)
 
 ## Troubleshooting
 
 | Problem | Checks |
 |---|---|
+<<<<<<< HEAD
 | Backend pod is not ready | `kubectl -n fa2 describe pod <pod-name>` |
 | Deployment rollout fails | `kubectl -n fa2 rollout status deployment/backend` |
 | Application is unreachable | Check the frontend Service and port-forward terminal |
@@ -340,3 +514,16 @@ Do not merge deliberately failing test changes into `main`.
 ## Summary
 
 This project demonstrates an integrated DevOps workflow covering source control, automated testing, container image creation, registry publishing, Kubernetes deployment, rollout verification, scaling and application monitoring. It combines CI/CD validation with a separately managed local Kubernetes environment for operational inspection.
+=======
+| Jenkins build not starting after a push | Wait ~2 minutes (polling); check the job's *Polling Log* |
+| `docker` / `kubectl` not found in a stage | Start Jenkins from a PowerShell window where both commands work |
+| Image push fails | Check the `ghcr-creds` credentials and token scope `write:packages` |
+| Backend pod not ready | `kubectl -n fa2 describe pod <pod-name>` |
+| Rollout fails or pod shows `ImagePullBackOff` | Check the image tag exists in GHCR, or set `KIND_CLUSTER` for a kind cluster |
+| Prometheus target down | Check pod readiness, `/metrics`, Prometheus configuration |
+| Grafana has no data | Check the Prometheus data source and the dashboard time range |
+
+## Summary
+
+The project covers source control, a Jenkins Pipeline-as-Code workflow (build, test, security scan, Docker image build, deploy), container publishing, Kubernetes deployment with scaling and rollback, and Prometheus/Grafana monitoring.
+>>>>>>> 141e49d (Migrate CI/CD from GitHub Actions to Jenkins)
