@@ -1,0 +1,159 @@
+name: FA2 CI/CD
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  BACKEND_IMAGE: fa2-backend
+  FRONTEND_IMAGE: fa2-frontend
+
+jobs:
+  # ---------------------------------------------------------------- 1. BUILD + TEST
+  build-test:
+    name: Build & unit test
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: docker/backend
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          cache: npm
+          cache-dependency-path: docker/backend/package-lock.json
+
+      - name: Install dependencies (build)
+        run: npm ci
+
+      - name: Unit tests (pipeline fails here if any test fails)
+        run: npm test
+
+  # ---------------------------------------------------------------- 2. DOCKER IMAGES
+  docker:
+    name: Docker build (+ push to GHCR on main)
+    needs: build-test
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.vars.outputs.tag }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Compute image names and tag
+        id: vars
+        run: |
+          OWNER="${GITHUB_REPOSITORY_OWNER,,}"            # GHCR requires lowercase
+          echo "tag=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+          echo "owner=$OWNER" >> "$GITHUB_OUTPUT"
+
+      - name: Build backend image
+        run: |
+          docker build -t ghcr.io/${{ steps.vars.outputs.owner }}/$BACKEND_IMAGE:${{ steps.vars.outputs.tag }} \
+                       -t ghcr.io/${{ steps.vars.outputs.owner }}/$BACKEND_IMAGE:latest docker/backend
+
+      - name: Build frontend image
+        run: |
+          docker build -t ghcr.io/${{ steps.vars.outputs.owner }}/$FRONTEND_IMAGE:${{ steps.vars.outputs.tag }} \
+                       -t ghcr.io/${{ steps.vars.outputs.owner }}/$FRONTEND_IMAGE:latest docker/frontend
+
+      - name: Save images for the deploy job
+        run: |
+          O=ghcr.io/${{ steps.vars.outputs.owner }}
+          docker save -o images.tar \
+            $O/$BACKEND_IMAGE:${{ steps.vars.outputs.tag }} $O/$BACKEND_IMAGE:latest \
+            $O/$FRONTEND_IMAGE:${{ steps.vars.outputs.tag }} $O/$FRONTEND_IMAGE:latest
+
+      - name: Upload images artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: images
+          path: images.tar
+          retention-days: 1
+
+      - name: Log in to GHCR
+        if: github.event_name == 'push'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Push images
+        if: github.event_name == 'push'
+        run: |
+          O=ghcr.io/${{ steps.vars.outputs.owner }}
+          for img in $BACKEND_IMAGE $FRONTEND_IMAGE; do
+            docker push $O/$img:${{ steps.vars.outputs.tag }}
+            docker push $O/$img:latest
+          done
+
+  # ---------------------------------------------------------------- 3. KUBERNETES DEPLOY
+  deploy:
+    name: Deploy to Kubernetes (kind) & smoke test
+    needs: docker
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download images artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: images
+
+      - name: Create kind cluster
+        uses: helm/kind-action@v1
+        with:
+          cluster_name: fa2
+
+      - name: Load images into the cluster
+        run: |
+          docker load -i images.tar
+          for img in $(docker image ls --format '{{.Repository}}:{{.Tag}}' | grep -E 'fa2-(backend|frontend):latest'); do
+            kind load docker-image "$img" --name fa2
+          done
+
+      - name: Deploy manifests
+        run: |
+          kubectl apply -f k8s/namespace.yaml
+          kubectl apply -f k8s/backend.yaml
+          kubectl apply -f k8s/frontend.yaml
+
+      - name: Wait for rollout
+        run: |
+          kubectl -n fa2 rollout status deployment/backend --timeout=120s
+          kubectl -n fa2 rollout status deployment/frontend --timeout=120s
+          kubectl -n fa2 get pods,svc -o wide
+
+      - name: Smoke test (frontend -> backend through the Service)
+        run: |
+          kubectl -n fa2 port-forward svc/frontend 8080:80 &
+          sleep 5
+          curl -fsS http://localhost:8080/api/health
+          curl -fsS http://localhost:8080/api/status
+          kubectl -n fa2 port-forward svc/backend-api 5000:5000 &
+          sleep 3
+          curl -fsS http://localhost:5000/metrics | grep http_requests_total
+
+      - name: Demonstrate scaling
+        run: |
+          kubectl -n fa2 scale deployment/backend --replicas=3
+          kubectl -n fa2 rollout status deployment/backend --timeout=120s
+          kubectl -n fa2 get deployment backend
+
+      - name: Dump debug info on failure
+        if: failure()
+        run: |
+          kubectl -n fa2 describe pods || true
+          kubectl -n fa2 logs -l app=backend --tail=50 || true

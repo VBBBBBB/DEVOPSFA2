@@ -1,0 +1,26 @@
+# Terraform state and locks
+*.tfstate
+*.tfstate.*
+crash.log
+crash.*.log
+*.tfvars.json
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+.terraformrc
+terraform.rc
+.terraform/
+.terraform.lock.hcl
+
+# Environment files
+.env
+.env.*
+
+# Node modules
+node_modules/
+npm-debug.log*
+
+# OS files
+.DS_Store
+Thumbs.db

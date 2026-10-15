@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FA1 Infrastructure Portal | DevOps</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-base: #0a0e17;
+            --bg-card: rgba(18, 24, 38, 0.7);
+            --border: rgba(255, 255, 255, 0.08);
+            --border-hover: rgba(255, 255, 255, 0.2);
+            --text-main: #f1f5f9;
+            --text-muted: #94a3b8;
+            --primary: #38bdf8;
+            --primary-glow: rgba(56, 189, 248, 0.25);
+            --success: #10b981;
+            --success-glow: rgba(16, 185, 129, 0.2);
+            --warning: #f59e0b;
+            --danger: #ef4444;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: var(--bg-base);
+            background-image: 
+                radial-gradient(at 0% 0%, rgba(56, 189, 248, 0.12) 0px, transparent 50%),
+                radial-gradient(at 100% 100%, rgba(139, 92, 246, 0.12) 0px, transparent 50%);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 2.5rem 1.5rem;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 900px;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 2.5rem;
+        }
+
+        .badge-bar {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.35rem 0.9rem;
+            border-radius: 9999px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border);
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: var(--text-muted);
+            margin-bottom: 1.25rem;
+        }
+
+        .env-badge {
+            padding: 0.2rem 0.6rem;
+            border-radius: 6px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            font-size: 0.75rem;
+        }
+
+        .env-qa { background: #3b82f6; color: #fff; box-shadow: 0 0 12px rgba(59, 130, 246, 0.5); }
+        .env-uat { background: #f59e0b; color: #000; box-shadow: 0 0 12px rgba(245, 158, 11, 0.5); }
+        .env-prod { background: #10b981; color: #fff; box-shadow: 0 0 12px rgba(16, 185, 129, 0.5); }
+
+        h1 {
+            font-size: 2.3rem;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            background: linear-gradient(135deg, #ffffff 40%, #94a3b8 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 0.5rem;
+        }
+
+        p.subtitle {
+            color: var(--text-muted);
+            font-size: 1rem;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.25rem;
+            margin-bottom: 2rem;
+        }
+
+        .card {
+            background: var(--bg-card);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 1.5rem;
+            transition: all 0.25s ease;
+        }
+
+        .card:hover {
+            border-color: var(--border-hover);
+            transform: translateY(-2px);
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1.25rem;
+        }
+
+        .card-title {
+            font-size: 1rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background-color: var(--success);
+            box-shadow: 0 0 8px var(--success-glow);
+            animation: pulse 2s infinite ease-in-out;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(0.85); }
+        }
+
+        .meta-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            font-size: 0.9rem;
+        }
+
+        .meta-row {
+            display: flex;
+            justify-content: space-between;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+        }
+
+        .meta-label {
+            color: var(--text-muted);
+        }
+
+        .meta-val {
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 500;
+            color: #e2e8f0;
+        }
+
+        .terminal-box {
+            background: #06090e;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.25rem;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+            margin-top: 1rem;
+            overflow-x: auto;
+        }
+
+        .terminal-bar {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-bottom: 0.75rem;
+        }
+
+        .term-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+        }
+        .term-red { background: #ef4444; }
+        .term-yellow { background: #f59e0b; }
+        .term-green { background: #10b981; }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: linear-gradient(135deg, #0284c7, #2563eb);
+            color: white;
+            padding: 0.65rem 1.25rem;
+            border: none;
+            border-radius: 8px;
+            font-family: inherit;
+            font-weight: 600;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: opacity 0.2s;
+            text-decoration: none;
+        }
+
+        .btn:hover {
+            opacity: 0.9;
+        }
+
+        footer {
+            margin-top: auto;
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 0.85rem;
+            padding-top: 2rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="badge-bar">
+                <span>DevOps FA1 Assessment</span>
+                <span>•</span>
+                <span id="envBadge" class="env-badge env-qa">DETECTING...</span>
+            </div>
+            <h1>Multi-Environment IaC Deployment</h1>
+            <p class="subtitle">Single Terraform codebase dynamically provisioning isolated Docker microservices</p>
+        </header>
+
+        <div class="grid">
+            <!-- Frontend Service Card -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">
+                        <span class="status-dot"></span>
+                        Container 1: Frontend (Web)
+                    </div>
+                </div>
+                <div class="meta-list">
+                    <div class="meta-row">
+                        <span class="meta-label">Technology</span>
+                        <span class="meta-val">Nginx Alpine + HTML5</span>
+                    </div>
+                    <div class="meta-row">
+                        <span class="meta-label">Internal Port</span>
+                        <span class="meta-val">80/TCP</span>
+                    </div>
+                    <div class="meta-row">
+                        <span class="meta-label">Reverse Proxy</span>
+                        <span class="meta-val">/api/ &rarr; backend-api:5000</span>
+                    </div>
+                    <div class="meta-row">
+                        <span class="meta-label">Status</span>
+                        <span class="meta-val" style="color: var(--success);">Operational</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Backend Service Card -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">
+                        <span id="backendDot" class="status-dot" style="background-color: var(--warning);"></span>
+                        Container 2: Backend (API)
+                    </div>
+                    <button class="btn" onclick="fetchBackendStatus()">Ping API</button>
+                </div>
+                <div class="meta-list">
+                    <div class="meta-row">
+                        <span class="meta-label">Technology</span>
+                        <span class="meta-val">Node.js Express (Alpine)</span>
+                    </div>
+                    <div class="meta-row">
+                        <span class="meta-label">Internal Port</span>
+                        <span class="meta-val">5000/TCP</span>
+                    </div>
+                    <div class="meta-row">
+                        <span class="meta-label">Docker Network</span>
+                        <span class="meta-val" id="networkName">Bridge Network</span>
+                    </div>
+                    <div class="meta-row">
+                        <span class="meta-label">API Health</span>
+                        <span class="meta-val" id="apiStatus">Checking...</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Live Backend Response -->
+        <div class="card">
+            <div class="card-header">
+                <div class="card-title">Live Backend JSON Response (via Docker internal network)</div>
+            </div>
+            <div class="terminal-box">
+                <div class="terminal-bar">
+                    <span class="term-dot term-red"></span>
+                    <span class="term-dot term-yellow"></span>
+                    <span class="term-dot term-green"></span>
+                    <span style="color: var(--text-muted); font-size: 0.75rem; margin-left: 8px;">GET /api/status</span>
+                </div>
+                <pre id="apiOutput" style="color: #38bdf8;">Connecting to backend microservice...</pre>
+            </div>
+        </div>
+
+        <footer>
+            FA1 Assessment Component &bull; Automated with Terraform &bull; Docker Containerization
+        </footer>
+    </div>
+
+    <script>
+        async function fetchBackendStatus() {
+            const apiStatus = document.getElementById('apiStatus');
+            const apiOutput = document.getElementById('apiOutput');
+            const backendDot = document.getElementById('backendDot');
+            const envBadge = document.getElementById('envBadge');
+            const networkName = document.getElementById('networkName');
+
+            try {
+                const res = await fetch('/api/status');
+                if (!res.ok) throw new Error('HTTP ' + res.status);
+                const data = await res.json();
+                
+                apiStatus.innerText = 'Connected (' + data.status + ')';
+                apiStatus.style.color = 'var(--success)';
+                backendDot.style.backgroundColor = 'var(--success)';
+                apiOutput.innerText = JSON.stringify(data, null, 2);
+
+                const env = (data.environment || 'QA').toUpperCase();
+                envBadge.innerText = env + ' ENVIRONMENT';
+                envBadge.className = 'env-badge env-' + env.toLowerCase();
+                networkName.innerText = 'app_network_' + env.toLowerCase();
+            } catch (err) {
+                apiStatus.innerText = 'Disconnected';
+                apiStatus.style.color = 'var(--danger)';
+                backendDot.style.backgroundColor = 'var(--danger)';
+                apiOutput.innerText = '// Error reaching backend via /api/status\n' + err.message;
+            }
+        }
+
+        // Auto-fetch on page load
+        window.addEventListener('DOMContentLoaded', fetchBackendStatus);
+    </script>
+</body>
+</html>
